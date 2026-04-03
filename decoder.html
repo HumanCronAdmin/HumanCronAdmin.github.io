@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Japanese Communication Decoder</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#1a1a2e;color:#eee;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.container{max-width:600px;width:100%;text-align:center}
+h1{font-size:1.6rem;margin-bottom:8px;color:#e94560}
+.subtitle{color:#aaa;font-size:.9rem;margin-bottom:32px}
+.card{background:#16213e;border-radius:16px;padding:32px 24px;margin-bottom:20px;box-shadow:0 8px 32px rgba(0,0,0,.3);display:none}
+.card.active{display:block;animation:fadeIn .4s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.japanese{font-size:2rem;margin-bottom:8px}
+.romaji{color:#e94560;font-size:1.1rem;margin-bottom:4px}
+.literal{color:#888;font-size:.85rem;margin-bottom:20px}
+.question{font-size:1.1rem;margin-bottom:20px;line-height:1.5}
+.options{display:flex;flex-direction:column;gap:12px}
+.opt{background:#0f3460;border:2px solid transparent;border-radius:12px;padding:16px;cursor:pointer;font-size:1rem;color:#eee;transition:all .2s;text-align:left}
+.opt:hover{border-color:#e94560;background:#1a1a4e;transform:translateX(4px)}
+.result{background:#16213e;border-radius:16px;padding:32px 24px;display:none;text-align:left;line-height:1.7}
+.result.active{display:block;animation:fadeIn .4s ease}
+.result h3{color:#e94560;font-size:1.3rem;margin-bottom:12px}
+.result .meaning{font-size:1.1rem;margin-bottom:16px}
+.result .tip{background:#0f3460;border-radius:8px;padding:16px;margin-bottom:16px;font-size:.95rem}
+.result .tip strong{color:#e94560}
+.btn-next{background:#e94560;color:#fff;border:none;border-radius:8px;padding:12px 32px;font-size:1rem;cursor:pointer;margin-top:16px;transition:background .2s}
+.btn-next:hover{background:#c73650}
+.btn-restart{background:transparent;color:#e94560;border:2px solid #e94560;border-radius:8px;padding:12px 32px;font-size:1rem;cursor:pointer;margin-top:12px;transition:all .2s}
+.btn-restart:hover{background:#e94560;color:#fff}
+.progress{display:flex;gap:8px;justify-content:center;margin-bottom:24px}
+.dot{width:12px;height:12px;border-radius:50%;background:#333;transition:background .3s}
+.dot.done{background:#e94560}
+.dot.current{background:#e94560;box-shadow:0 0 8px #e94560}
+.footer{margin-top:32px;color:#555;font-size:.8rem}
+.footer a{color:#e94560;text-decoration:none}
+.score-bar{margin-top:24px;text-align:center}
+.score-bar p{color:#aaa;font-size:.9rem;margin-bottom:8px}
+.score-num{font-size:2.5rem;color:#e94560;font-weight:bold}
+.score-label{color:#aaa;font-size:.9rem}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Japanese Communication Decoder</h1>
+<p class="subtitle">What did they <em>really</em> mean? A guide by a real Japanese person.</p>
+
+<div class="progress" id="progress"></div>
+
+<div class="card active" id="start-card">
+<p class="question">Your Japanese coworker or boss just said something, and you're not sure what they actually meant.<br><br>Let's decode it together.</p>
+<button class="btn-next" onclick="startQuiz()">Start Decoding</button>
+</div>
+</div>
+
+<div class="footer">
+Made with care by a Japanese local | <a href="https://github.com/humancronadmin">More resources</a>
+</div>
+
+<script>
+const scenarios=[
+{japanese:"大丈夫です",romaji:"Daijoubu desu",literal:'Literal: "I\'m fine / It\'s okay"',question:"Your coworker said this when you offered them something. What was their expression?",options:[
+{text:"Smiling and nodding, reached for the item",result:"genuine_ok"},
+{text:"Smiled but waved their hand slightly",result:"polite_no"},
+{text:"Said it quickly while looking away",result:"hard_no"}
+]},
+{japanese:"ちょっと難しいですね",romaji:"Chotto muzukashii desu ne",literal:'Literal: "That\'s a little difficult"',question:"Your boss said this about your project proposal. What happened in the meeting after?",options:[
+{text:"They asked follow-up questions about the details",result:"maybe_yes"},
+{text:"They moved on to the next topic",result:"soft_no"},
+{text:"They said 'let me think about it' and ended the meeting",result:"definite_no"}
+]},
+{japanese:"前向きに検討します",romaji:"Maemuki ni kentou shimasu",literal:'Literal: "We\'ll consider it positively"',question:"You pitched an idea and got this response. One week later...",options:[
+{text:"Your boss brought it up again with new questions",result:"rare_yes"},
+{text:"Nobody has mentioned it since",result:"buried"},
+{text:"A colleague whispered 'don\'t hold your breath'",result:"very_buried"}
+]},
+{japanese:"お疲れ様です",romaji:"Otsukaresama desu",literal:'Literal: "You must be tired"',question:"When did they say this to you?",options:[
+{text:"When you passed them in the hallway during work hours",result:"greeting"},
+{text:"When you were leaving the office for the day",result:"goodbye"},
+{text:"At the beginning of an email",result:"email_opener"}
+]},
+{japanese:"考えておきます",romaji:"Kangaete okimasu",literal:'Literal: "I\'ll think about it"',question:"You asked your boss for time off. They said this. Their tone was...",options:[
+{text:"Warm, with a nod, while checking the calendar",result:"likely_yes"},
+{text:"Flat, without looking up from their screen",result:"probably_no"},
+{text:"Followed by a long 'sssss' inhale through teeth",result:"absolutely_no"}
+]},
+{japanese:"結構です",romaji:"Kekkou desu",literal:'Literal: "That\'s sufficient / That\'s fine"',question:"A shop clerk said this when you tried to hand them something. Context?",options:[
+{text:"You offered a loyalty card / coupon",result:"dont_need"},
+{text:"You tried to pay with a large bill",result:"cant_break"},
+{text:"You asked if they need a bag",result:"no_bag"}
+]}
+];
+
+const results={
+genuine_ok:{title:"They genuinely mean OK!",meaning:"When paired with a real smile and reaching for what you offered, daijoubu desu actually means what it says. This is one of the rare times.",tip:"If someone takes the item from you while saying daijoubu, you're good. The body language confirms the words."},
+polite_no:{title:"This is a polite 'No thank you'",meaning:"The hand wave is the giveaway. They're declining your offer but being nice about it. If you push it again, they'll get uncomfortable.",tip:"In Japanese culture, refusing something once isn't always final — but if they wave their hand AND say daijoubu, take the hint. Don't offer a third time."},
+hard_no:{title:"Definitely No, and they want to end this interaction",meaning:"Quick delivery + avoiding eye contact = they really don't want what you're offering and feel awkward about the situation.",tip:"Just say 'ah, wakarimashita!' (got it!) with a smile and move on. They'll be relieved."},
+maybe_yes:{title:"Actually being considered! (Rare!)",meaning:"Follow-up questions are a very good sign. Japanese managers who truly reject something won't waste time asking details.",tip:"Send a follow-up document or email while the momentum is there. Strike while the iron is hot."},
+soft_no:{title:"This was a No.",meaning:"Moving to the next topic = politely burying your proposal. 'Chotto muzukashii' is the classic gentle rejection in Japanese business.",tip:"Don't bring it up again in the same form. If you really believe in the idea, repackage it differently in a few weeks."},
+definite_no:{title:"Very much a No.",meaning:"'Let me think about it' after 'chotto muzukashii' is a double rejection wrapped in cotton. Nothing will happen.",tip:"Read the room. Your boss was being kind by not saying no directly. Pushing harder will damage the relationship."},
+rare_yes:{title:"Wait... they might actually do it!?",meaning:"This is extremely rare. If a Japanese boss comes BACK to discuss something after saying 'maemuki ni kentou shimasu,' they might genuinely be interested.",tip:"This almost never happens. Prepare a detailed plan immediately and don't let this window close."},
+buried:{title:"Yeah, that's dead.",meaning:"'Maemuki ni kentou shimasu' is possibly the most famous gentle rejection in Japanese business. It sounds incredibly positive. It is not.",tip:"Fun fact: There are entire Japanese comedy bits about this phrase. Even Japanese people joke about how it means the exact opposite."},
+very_buried:{title:"So dead it's fossilized.",meaning:"When even your Japanese colleague gives you the heads up, you know it's really over. At least someone was looking out for you.",tip:"Buy that colleague a coffee. They just saved you weeks of false hope."},
+greeting:{title:"It's just 'Hello'!",meaning:"Otsukaresama desu in the hallway is basically a universal greeting at work. It's like saying 'hey' but with built-in respect. Nobody is actually commenting on your tiredness.",tip:"Use it back! 'Otsukaresama desu!' works in any work situation as a greeting. It's the safest phrase in Japanese office life."},
+goodbye:{title:"It means 'Good work today, see you tomorrow'",meaning:"When someone is leaving, otsukaresama desu is how you acknowledge their work and say goodbye. It's warm and respectful.",tip:"If YOU are the one leaving, say 'osaki ni shitsurei shimasu' (sorry for leaving before you) first, and your colleagues will respond with otsukaresama!"},
+email_opener:{title:"It's just an email greeting — like 'Hi'",meaning:"Almost every internal work email in Japan starts with otsukaresama desu. It has zero meaning beyond 'hello, I'm being polite.' Don't read into it.",tip:"Start your emails with it too. 'Otsukaresama desu. [Your name] desu.' Then get to the point. You'll sound like a pro."},
+likely_yes:{title:"Looking good! Probably Yes.",meaning:"Calendar checking + warm tone = they're figuring out logistics, not avoiding you. Your time off is likely approved.",tip:"Send a formal written request (email or form) right away while the positive energy is there."},
+probably_no:{title:"Probably No. Don't get your hopes up.",meaning:"Not looking at you + flat tone = they don't want to deal with this request. 'I'll think about it' is their way of delaying the rejection.",tip:"Wait 2-3 days, then ask again gently: 'Have you had a chance to consider my request?' If they deflect again, it's a No."},
+absolutely_no:{title:"The teeth-sucking inhale (sss) = Absolutely Not.",meaning:"That 'sssss' sound through the teeth is the most Japanese way to express difficulty or reluctance. Combined with 'I'll think about it,' this is a firm No that they don't want to say directly.",tip:"The teeth-suck is actually a useful sound to learn to recognize. It appears in many contexts and always signals discomfort, difficulty, or disagreement."},
+dont_need:{title:"They don't need it / declining politely",meaning:"Kekkou desu here means 'I'm fine without that, thank you.'",tip:"Just put it away and smile. No big deal!"},
+cant_break:{title:"They might not be able to break the bill",meaning:"Some smaller shops struggle with large bills. They might be saying 'that's a bit much' politely.",tip:"Try asking 'chiisai no arimasu ka?' (do you have something smaller?) — meaning do you have smaller change. Or use cashless payment!"},
+no_bag:{title:"They're declining — no bag needed",meaning:"With Japan's plastic bag charges, kekkou desu is the standard way to say 'no bag please.'",tip:"You can also say 'fukuro wa kekkou desu' yourself when YOU don't need a bag. Using their own phrase back is a nice touch."}
+};
+
+let currentQ=0,score=0,answered=[];
+function buildProgress(){const p=document.getElementById('progress');p.innerHTML='';for(let i=0;i<scenarios.length;i++){const d=document.createElement('div');d.className='dot';d.id='dot-'+i;p.appendChild(d)}}
+function updateProgress(){for(let i=0;i<scenarios.length;i++){const d=document.getElementById('dot-'+i);d.className=i<currentQ?'dot done':i===currentQ?'dot current':'dot'}}
+function startQuiz(){buildProgress();showQuestion(0)}
+function showQuestion(idx){currentQ=idx;updateProgress();const s=scenarios[idx];const c=document.querySelector('.container');
+document.querySelectorAll('.card,.result').forEach(e=>e.classList.remove('active'));
+let card=document.getElementById('q-'+idx);if(!card){card=document.createElement('div');card.className='card';card.id='q-'+idx;
+card.innerHTML=`<div class="japanese">${s.japanese}</div><div class="romaji">${s.romaji}</div><div class="literal">${s.literal}</div><div class="question">${s.question}</div><div class="options">${s.options.map((o,i)=>`<div class="opt" onclick="showResult(${idx},${i})">${o.text}</div>`).join('')}</div>`;
+c.appendChild(card)}
+card.classList.add('active');document.getElementById('start-card').classList.remove('active')}
+function showResult(qIdx,optIdx){const s=scenarios[qIdx];const r=results[s.options[optIdx].result];
+document.querySelectorAll('.card').forEach(e=>e.classList.remove('active'));
+let res=document.getElementById('r-'+qIdx);if(res)res.remove();
+res=document.createElement('div');res.className='result active';res.id='r-'+qIdx;
+const isLast=qIdx>=scenarios.length-1;
+res.innerHTML=`<h3>${r.title}</h3><div class="meaning">${r.meaning}</div><div class="tip"><strong>Pro tip:</strong> ${r.tip}</div>${isLast?`<div class="score-bar"><p>You decoded all ${scenarios.length} phrases!</p><button class="btn-next" onclick="location.reload()">Try Again</button><br><button class="btn-restart" onclick="window.open('https://github.com/humancronadmin')">More Japan Guides</button></div>`:`<button class="btn-next" onclick="showQuestion(${qIdx+1})">Next Phrase →</button>`}`;
+document.querySelector('.container').appendChild(res);
+answered.push(qIdx)}
+</script>
+</body>
+</html>
